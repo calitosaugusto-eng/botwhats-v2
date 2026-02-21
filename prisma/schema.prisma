@@ -12,6 +12,27 @@ datasource db {
 }
 
 // ===========================================
+// USERS (Usuários do sistema)
+// ===========================================
+// Admin = você (vê tudo)
+// Client = dono do estabelecimento (vê só seus dados)
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String   // Hash bcrypt, NUNCA texto puro
+  name         String
+  role         String   @default("client") // "admin" ou "client"
+  clientId     String?  // Se for client, qual estabelecimento
+  isActive     Boolean  @default(true)
+  lastLogin    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relacionamentos
+  client       Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// ===========================================
 // CLIENTES (Organizações que usam o bot)
 // ===========================================
 model Client {
@@ -29,6 +50,7 @@ model Client {
   updatedAt     DateTime @updatedAt
   
   // Relacionamentos
+  users         User[]
   members       Member[]
   messages      Message[]
   templates     Template[]

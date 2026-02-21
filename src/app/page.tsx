@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession, signOut } from 'next-auth/react'
+import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,7 +24,7 @@ import {
   Smartphone, Globe, Plus, Search, MoreHorizontal,
   Phone, Mail, Calendar, FileText, Bell, ChevronRight,
   Play, Pause, RefreshCw, Terminal, Copy, ExternalLink,
-  X, Save, Clock4, MessageCircle, Sparkles, Shield
+  X, Save, Clock4, MessageCircle, Sparkles, Shield, LogOut
 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
@@ -56,10 +58,16 @@ interface Conversation {
 }
 
 export default function Dashboard() {
+  // Autenticação
+  const { data: session, status } = useSession()
+  
   // Estados
   const [activeTab, setActiveTab] = useState('dashboard')
   const [loading, setLoading] = useState(false)
-  const [clientId] = useState('default')
+  
+  // ClientId vem da sessão (ou null para admin ver tudo)
+  const clientId = session?.user?.clientId || null
+  const isAdmin = session?.user?.role === 'admin'
   
   // Dashboard stats
   const [stats, setStats] = useState({
@@ -189,13 +197,32 @@ export default function Dashboard() {
     { id: 'restaurante', name: 'Restaurante', icon: '🍽️' },
   ]
 
-  // Carregar dados iniciais
+  // Carregar dados iniciais - só quando tiver sessão
   useEffect(() => {
-    loadStats()
-    loadMembers()
-    loadConversations()
-    loadConfig()
-  }, [])
+    if (status === 'loading') return
+    if (status === 'unauthenticated') {
+      redirect('/login')
+      return
+    }
+    if (session && clientId) {
+      loadStats()
+      loadMembers()
+      loadConversations()
+      loadConfig()
+    }
+  }, [session, status, clientId])
+
+  // Loading state enquanto verifica autenticação
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin mx-auto mb-4" />
+          <p className="text-slate-400">Carregando...</p>
+        </div>
+      </div>
+    )
+  }
 
   const loadStats = async () => {
     try {
@@ -427,7 +454,9 @@ export default function Dashboard() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">BotWhats</h1>
-              <p className="text-xs text-slate-400">Plataforma de Automação WhatsApp</p>
+              <p className="text-xs text-slate-400">
+                {isAdmin ? '👑 Administrador' : session?.user?.clientName || 'Plataforma de Automação WhatsApp'}
+              </p>
             </div>
           </div>
           
@@ -436,6 +465,15 @@ export default function Dashboard() {
               <Zap className="w-3 h-3 mr-1" />
               Sistema Ativo
             </Badge>
+            
+            {/* Info do usuário */}
+            <div className="hidden sm:flex items-center gap-2">
+              <div className="text-right">
+                <p className="text-sm text-white">{session?.user?.name}</p>
+                <p className="text-xs text-slate-400">{session?.user?.email}</p>
+              </div>
+            </div>
+            
             <Button 
               variant="ghost" 
               size="sm" 
@@ -443,6 +481,16 @@ export default function Dashboard() {
               onClick={() => setShowSettings(true)}
             >
               <Settings className="w-4 h-4" />
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-slate-400 hover:text-red-400"
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              title="Sair"
+            >
+              <LogOut className="w-4 h-4" />
             </Button>
           </div>
         </div>

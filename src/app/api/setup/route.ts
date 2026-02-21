@@ -10,6 +10,24 @@ export async function GET() {
     console.log('🔄 Iniciando criação de tabelas...')
 
     // Criar tabelas via SQL raw
+    
+    // Tabela de Usuários (precisa ser criada primeiro)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "User" (
+        "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+        "email" TEXT UNIQUE NOT NULL,
+        "password" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "role" TEXT NOT NULL DEFAULT 'client',
+        "clientId" TEXT,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "lastLogin" TIMESTAMP(3),
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "User_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+    `)
+
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Client" (
         "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
