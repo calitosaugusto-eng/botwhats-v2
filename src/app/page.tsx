@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession, signOut } from 'next-auth/react'
-import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,7 +22,7 @@ import {
   Smartphone, Globe, Plus, Search, MoreHorizontal,
   Phone, Mail, Calendar, FileText, Bell, ChevronRight,
   Play, Pause, RefreshCw, Terminal, Copy, ExternalLink,
-  X, Save, Clock4, MessageCircle, Sparkles, Shield, LogOut
+  X, Save, Clock4, MessageCircle, Sparkles, Shield
 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
@@ -58,16 +56,9 @@ interface Conversation {
 }
 
 export default function Dashboard() {
-  // Autenticação
-  const { data: session, status } = useSession()
-  
   // Estados
   const [activeTab, setActiveTab] = useState('dashboard')
   const [loading, setLoading] = useState(false)
-  
-  // ClientId vem da sessão (ou null para admin ver tudo)
-  const clientId = session?.user?.clientId || null
-  const isAdmin = session?.user?.role === 'admin'
   
   // Dashboard stats
   const [stats, setStats] = useState({
@@ -117,10 +108,18 @@ export default function Dashboard() {
     status: 'active'
   })
 
+  // Carregar dados iniciais
+  useEffect(() => {
+    loadStats()
+    loadMembers()
+    loadConversations()
+    loadConfig()
+  }, [])
+
   // Carregar mensagens da conversa
   const loadConversationMessages = async (conversationId: string) => {
     try {
-      const res = await fetch(`/api/conversations/${conversationId}/messages?clientId=${clientId}`)
+      const res = await fetch(`/api/conversations/${conversationId}/messages`)
       const data = await res.json()
       if (data.success) {
         setConversationMessages(data.messages || [])
@@ -147,16 +146,12 @@ export default function Dashboard() {
       const res = await fetch(`/api/conversations/${selectedConversation.id}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: humanReply,
-          clientId
-        })
+        body: JSON.stringify({ message: humanReply })
       })
       
       const data = await res.json()
       
       if (data.success) {
-        // Adicionar mensagem localmente
         const newMsg: Message = {
           id: `human-${Date.now()}`,
           content: humanReply,
@@ -166,11 +161,7 @@ export default function Dashboard() {
         }
         setConversationMessages(prev => [...prev, newMsg])
         setHumanReply('')
-        
-        // Atualizar conversa para mostrar que humano assumiu
         setSelectedConversation(prev => prev ? { ...prev, humanTakeover: true } : null)
-        
-        // Recarregar conversas para atualizar indicadores
         loadConversations()
       } else {
         alert('Erro ao enviar mensagem: ' + data.error)
@@ -197,36 +188,9 @@ export default function Dashboard() {
     { id: 'restaurante', name: 'Restaurante', icon: '🍽️' },
   ]
 
-  // Carregar dados iniciais - só quando tiver sessão
-  useEffect(() => {
-    if (status === 'loading') return
-    if (status === 'unauthenticated') {
-      redirect('/login')
-      return
-    }
-    if (session && clientId) {
-      loadStats()
-      loadMembers()
-      loadConversations()
-      loadConfig()
-    }
-  }, [session, status, clientId])
-
-  // Loading state enquanto verifica autenticação
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">Carregando...</p>
-        </div>
-      </div>
-    )
-  }
-
   const loadStats = async () => {
     try {
-      const res = await fetch(`/api/config?clientId=${clientId}`)
+      const res = await fetch('/api/config')
       const data = await res.json()
       if (data.success) {
         setStats(prev => ({ ...prev, ...data.stats }))
@@ -238,7 +202,7 @@ export default function Dashboard() {
 
   const loadMembers = async () => {
     try {
-      const res = await fetch(`/api/members?clientId=${clientId}`)
+      const res = await fetch('/api/members')
       const data = await res.json()
       if (data.success) {
         setMembers(data.members || [])
@@ -250,7 +214,7 @@ export default function Dashboard() {
 
   const loadConversations = async () => {
     try {
-      const res = await fetch(`/api/conversations?clientId=${clientId}`)
+      const res = await fetch('/api/conversations')
       const data = await res.json()
       if (data.success) {
         setConversations(data.conversations || [])
@@ -262,7 +226,7 @@ export default function Dashboard() {
 
   const loadConfig = async () => {
     try {
-      const res = await fetch(`/api/config?clientId=${clientId}`)
+      const res = await fetch('/api/config')
       const data = await res.json()
       if (data.success && data.config) {
         setBotName(data.config.botName || 'Assistente Virtual')
@@ -279,7 +243,6 @@ export default function Dashboard() {
     
     setLoading(true)
     
-    // Adicionar mensagem do usuário
     const userMsg: Message = {
       id: `user-${Date.now()}`,
       content: inputMessage,
@@ -297,7 +260,6 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: currentMessage,
-          clientId,
           niche: selectedNiche
         })
       })
@@ -314,7 +276,6 @@ export default function Dashboard() {
         }
         setChatMessages(prev => [...prev, botMsg])
       } else {
-        // Mostrar erro
         const errorMsg: Message = {
           id: `error-${Date.now()}`,
           content: `Erro: ${data.error || 'Não foi possível processar a mensagem'}`,
@@ -351,10 +312,7 @@ export default function Dashboard() {
       const res = await fetch('/api/members', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId,
-          ...newMember
-        })
+        body: JSON.stringify(newMember)
       })
       
       const data = await res.json()
@@ -383,7 +341,6 @@ export default function Dashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clientId,
           botName,
           welcomeMessage,
           businessHours,
@@ -419,10 +376,7 @@ export default function Dashboard() {
       const res = await fetch('/api/broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId,
-          message: broadcastMessage
-        })
+        body: JSON.stringify({ message: broadcastMessage })
       })
       
       const data = await res.json()
@@ -454,9 +408,7 @@ export default function Dashboard() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">BotWhats</h1>
-              <p className="text-xs text-slate-400">
-                {isAdmin ? '👑 Administrador' : session?.user?.clientName || 'Plataforma de Automação WhatsApp'}
-              </p>
+              <p className="text-xs text-slate-400">Plataforma de Automação WhatsApp</p>
             </div>
           </div>
           
@@ -466,14 +418,6 @@ export default function Dashboard() {
               Sistema Ativo
             </Badge>
             
-            {/* Info do usuário */}
-            <div className="hidden sm:flex items-center gap-2">
-              <div className="text-right">
-                <p className="text-sm text-white">{session?.user?.name}</p>
-                <p className="text-xs text-slate-400">{session?.user?.email}</p>
-              </div>
-            </div>
-            
             <Button 
               variant="ghost" 
               size="sm" 
@@ -482,21 +426,11 @@ export default function Dashboard() {
             >
               <Settings className="w-4 h-4" />
             </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-slate-400 hover:text-red-400"
-              onClick={() => signOut({ callbackUrl: '/login' })}
-              title="Sair"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
           </div>
         </div>
       </header>
 
-      {/* Modal de Configurações Globais (Engrenagem) */}
+      {/* Modal de Configurações */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -678,13 +612,11 @@ export default function Dashboard() {
           </DialogHeader>
           
           <div className="py-4">
-            {/* Status da conversa */}
             <div className="flex items-center gap-2 mb-4">
               <Badge variant={selectedConversation?.status === 'active' ? 'default' : 'secondary'}>
                 {selectedConversation?.status === 'active' ? 'Ativa' : 'Resolvida'}
               </Badge>
               
-              {/* Indicador de quem está cuidando */}
               {selectedConversation?.humanTakeover ? (
                 <Badge variant="outline" className="border-blue-500 text-blue-400 bg-blue-500/10">
                   <Users className="w-3 h-3 mr-1" />
@@ -698,7 +630,6 @@ export default function Dashboard() {
               )}
             </div>
             
-            {/* Aviso importante */}
             {!selectedConversation?.humanTakeover && (
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4">
                 <div className="flex items-start gap-2">
@@ -731,7 +662,6 @@ export default function Dashboard() {
                             : 'bg-emerald-600 text-white'
                         }`}
                       >
-                        {/* Indicar se foi bot ou humano */}
                         {msg.isFromBot && (
                           <p className="text-xs text-emerald-400 mb-1 flex items-center gap-1">
                             <Bot className="w-3 h-3" /> Bot
@@ -754,7 +684,6 @@ export default function Dashboard() {
             </ScrollArea>
           </div>
           
-          {/* Input de resposta humana */}
           <div className="border-t border-slate-700 pt-4">
             <div className="flex gap-2">
               <Input
@@ -1030,195 +959,158 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
 
-            {/* Status */}
+          {/* Chat Tab */}
+          <TabsContent value="chat" className="space-y-4">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Terminal className="w-5 h-5 text-green-500" />
-                  Status do Sistema
+                  <Bot className="w-5 h-5 text-emerald-500" />
+                  Testar Bot
                 </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Envie mensagens para testar as respostas do bot
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-sm text-slate-300">Bot Online</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-sm text-slate-300">IA Ativa</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <span className="text-sm text-slate-300">WhatsApp API</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-sm text-slate-300">Banco de Dados</span>
-                  </div>
+                {/* Niche Selector */}
+                <div className="mb-4">
+                  <Label className="text-slate-300 mb-2 block">Nicho de Atuação</Label>
+                  <Select value={selectedNiche} onValueChange={setSelectedNiche}>
+                    <SelectTrigger className="bg-slate-900 border-slate-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-600">
+                      {niches.map(n => (
+                        <SelectItem key={n.id} value={n.id}>
+                          {n.icon} {n.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Chat Messages */}
+                <ScrollArea className="h-[400px] border border-slate-700 rounded-lg p-4 mb-4 bg-slate-900">
+                  {chatMessages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                      <MessageSquare className="w-12 h-12 mb-2 opacity-50" />
+                      <p>Envie uma mensagem para testar o bot</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {chatMessages.map(msg => (
+                        <div
+                          key={msg.id}
+                          className={`flex ${msg.direction === 'inbound' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div
+                            className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                              msg.direction === 'inbound'
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-slate-700 text-white'
+                            }`}
+                          >
+                            {msg.isFromBot && (
+                              <p className="text-xs text-emerald-400 mb-1 flex items-center gap-1">
+                                <Bot className="w-3 h-3" /> Bot
+                              </p>
+                            )}
+                            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                            <p className="text-xs opacity-50 mt-1">
+                              {new Date(msg.createdAt).toLocaleTimeString()}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+
+                {/* Input */}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Digite sua mensagem..."
+                    value={inputMessage}
+                    onChange={e => setInputMessage(e.target.value)}
+                    onKeyPress={e => e.key === 'Enter' && sendTestMessage()}
+                    className="bg-slate-900 border-slate-600 text-white"
+                    disabled={loading}
+                  />
+                  <Button 
+                    onClick={sendTestMessage}
+                    disabled={loading || !inputMessage.trim()}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    {loading ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Chat Test Tab */}
-          <TabsContent value="chat" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Niche Selector */}
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Selecione o Nicho</CardTitle>
-                  <CardDescription>Escolha para testar contexto específico</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-2">
-                    {niches.map(niche => (
-                      <Button
-                        key={niche.id}
-                        variant={selectedNiche === niche.id ? 'default' : 'outline'}
-                        className={`justify-start font-medium ${selectedNiche === niche.id ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-700/50 text-white border-slate-500 hover:bg-slate-600 hover:text-white'}`}
-                        onClick={() => setSelectedNiche(niche.id)}
-                      >
-                        <span className="mr-2 text-lg">{niche.icon}</span>
-                        {niche.name}
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Chat Window */}
-              <Card className="lg:col-span-2 bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5" />
-                    Teste do Bot
-                    <Badge variant="outline" className="ml-auto border-emerald-500 text-emerald-400">
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      IA Ativa
-                    </Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    Envie mensagens para testar as respostas do bot
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[400px] mb-4 pr-4">
-                    {chatMessages.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                        <Bot className="w-12 h-12 mb-2 opacity-50" />
-                        <p>Envie uma mensagem para testar o bot</p>
-                        <p className="text-sm mt-2">O bot usa IA para responder de forma inteligente</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {chatMessages.map(msg => (
-                          <div
-                            key={msg.id}
-                            className={`flex ${msg.isFromBot ? 'justify-start' : 'justify-end'}`}
-                          >
-                            <div
-                              className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                                msg.isFromBot
-                                  ? 'bg-slate-700 text-white'
-                                  : 'bg-emerald-600 text-white'
-                              }`}
-                            >
-                              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                              <p className="text-xs opacity-50 mt-1">
-                                {new Date(msg.createdAt).toLocaleTimeString()}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </ScrollArea>
-                  
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Digite sua mensagem..."
-                      value={inputMessage}
-                      onChange={e => setInputMessage(e.target.value)}
-                      onKeyPress={e => e.key === 'Enter' && sendTestMessage()}
-                      className="bg-slate-900 border-slate-600 text-white"
-                      disabled={loading}
-                    />
-                    <Button 
-                      onClick={sendTestMessage}
-                      disabled={loading || !inputMessage.trim()}
-                      className="bg-emerald-600 hover:bg-emerald-700"
-                    >
-                      {loading ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Send className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
           {/* Conversations Tab */}
-          <TabsContent value="conversations" className="space-y-6">
+          <TabsContent value="conversations" className="space-y-4">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
-                <CardTitle className="text-white">Conversas Recentes</CardTitle>
-                <CardDescription>
-                  Acompanhe as conversas do bot em tempo real
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Phone className="w-5 h-5 text-blue-500" />
+                      Conversas
+                    </CardTitle>
+                    <CardDescription className="text-slate-400">
+                      Gerencie as conversas ativas com seus contatos
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline" className="border-emerald-500 text-emerald-400">
+                    {conversations.length} conversas
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
                 {conversations.length === 0 ? (
-                  <div className="text-center py-12 text-slate-500">
-                    <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>Nenhuma conversa ainda</p>
-                    <p className="text-sm">As conversas aparecerão aqui quando o bot receber mensagens</p>
+                  <div className="text-center py-8 text-slate-500">
+                    <Phone className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>Nenhuma conversa ativa</p>
+                    <p className="text-sm">As conversas aparecerão aqui quando o webhook receber mensagens</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {conversations.map(conv => (
                       <div
                         key={conv.id}
-                        className="flex items-center justify-between p-4 rounded-lg bg-slate-900/50 hover:bg-slate-900 cursor-pointer"
                         onClick={() => openConversation(conv)}
+                        className="flex items-center justify-between p-3 rounded-lg bg-slate-900/50 hover:bg-slate-900 cursor-pointer transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            conv.humanTakeover ? 'bg-blue-600' : 'bg-slate-700'
-                          }`}>
-                            {conv.humanTakeover ? (
-                              <Users className="w-5 h-5 text-white" />
-                            ) : (
-                              <Bot className="w-5 h-5 text-emerald-400" />
-                            )}
+                          <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
+                            {conv.member?.name?.charAt(0) || <Phone className="w-4 h-4" />}
                           </div>
                           <div>
-                            <p className="text-white font-medium">{conv.member?.name || conv.phone}</p>
-                            <p className="text-xs text-slate-500">{conv.phone}</p>
+                            <p className="font-medium text-white">
+                              {conv.member?.name || conv.phone}
+                            </p>
+                            <p className="text-xs text-slate-400">{conv.phone}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          {/* Indicador Bot vs Humano */}
                           {conv.humanTakeover ? (
-                            <Badge variant="outline" className="border-blue-500 text-blue-400">
-                              <Users className="w-3 h-3 mr-1" />
+                            <Badge variant="outline" className="border-blue-500 text-blue-400 text-xs">
                               Humano
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="border-emerald-500 text-emerald-400">
-                              <Bot className="w-3 h-3 mr-1" />
+                            <Badge variant="outline" className="border-emerald-500 text-emerald-400 text-xs">
                               Bot
                             </Badge>
                           )}
-                          <Badge variant={
-                            conv.status === 'active' ? 'default' :
-                            conv.status === 'resolved' ? 'secondary' : 'destructive'
-                          }>
-                            {conv.status}
+                          <Badge variant={conv.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                            {conv.status === 'active' ? 'Ativa' : 'Resolvida'}
                           </Badge>
                           <ChevronRight className="w-4 h-4 text-slate-500" />
                         </div>
@@ -1231,79 +1123,79 @@ export default function Dashboard() {
           </TabsContent>
 
           {/* Members Tab */}
-          <TabsContent value="members" className="space-y-6">
+          <TabsContent value="members" className="space-y-4">
             <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-white">Membros Cadastrados</CardTitle>
-                  <CardDescription>
-                    Gerencie os contatos do seu sistema
-                  </CardDescription>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Users className="w-5 h-5 text-purple-500" />
+                      Membros
+                    </CardTitle>
+                    <CardDescription className="text-slate-400">
+                      Gerencie os contatos cadastrados
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    onClick={() => setShowAddMember(true)}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar
+                  </Button>
                 </div>
-                <Button 
-                  className="bg-emerald-600 hover:bg-emerald-700"
-                  onClick={() => setShowAddMember(true)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Novo Membro
-                </Button>
               </CardHeader>
               <CardContent>
-                <div className="mb-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <Input
-                      placeholder="Buscar membros..."
-                      value={searchMember}
-                      onChange={e => setSearchMember(e.target.value)}
-                      className="pl-10 bg-slate-900 border-slate-600"
-                    />
-                  </div>
+                {/* Search */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Input
+                    placeholder="Buscar membros..."
+                    value={searchMember}
+                    onChange={e => setSearchMember(e.target.value)}
+                    className="bg-slate-900 border-slate-600 pl-10"
+                  />
                 </div>
-                
+
                 {members.length === 0 ? (
-                  <div className="text-center py-12 text-slate-500">
+                  <div className="text-center py-8 text-slate-500">
                     <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p>Nenhum membro cadastrado</p>
-                    <p className="text-sm">Clique em "Novo Membro" para adicionar</p>
-                    <Button 
-                      className="mt-4 bg-emerald-600 hover:bg-emerald-700"
-                      onClick={() => setShowAddMember(true)}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Adicionar Primeiro Membro
-                    </Button>
+                    <p className="text-sm">Clique em "Adicionar" para cadastrar o primeiro membro</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {members
                       .filter(m => 
+                        !searchMember || 
                         m.name.toLowerCase().includes(searchMember.toLowerCase()) ||
                         m.phone.includes(searchMember)
                       )
                       .map(member => (
                         <div
                           key={member.id}
-                          className="flex items-center justify-between p-4 rounded-lg bg-slate-900/50"
+                          className="flex items-center justify-between p-3 rounded-lg bg-slate-900/50"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-medium">
+                            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-medium">
                               {member.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <p className="text-white font-medium">{member.name}</p>
-                              <p className="text-xs text-slate-500">{member.phone}</p>
-                              {member.email && <p className="text-xs text-slate-500">{member.email}</p>}
+                              <p className="font-medium text-white">{member.name}</p>
+                              <p className="text-xs text-slate-400">{member.phone}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             {member.category && (
-                              <Badge variant="outline" className="border-slate-600">
+                              <Badge variant="outline" className="text-xs">
                                 {member.category}
                               </Badge>
                             )}
-                            <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
-                              {member.status === 'active' ? 'Ativo' : 'Inativo'}
+                            <Badge 
+                              variant={member.status === 'active' ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {member.status === 'active' ? 'Ativo' : member.status}
                             </Badge>
                           </div>
                         </div>
@@ -1315,167 +1207,189 @@ export default function Dashboard() {
           </TabsContent>
 
           {/* Broadcast Tab */}
-          <TabsContent value="broadcast" className="space-y-6">
+          <TabsContent value="broadcast" className="space-y-4">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Send className="w-5 h-5 text-emerald-500" />
-                  Enviar Mensagem em Massa
+                  <Send className="w-5 h-5 text-orange-500" />
+                  Enviar Broadcast
                 </CardTitle>
-                <CardDescription>
-                  Envie mensagens para todos os membros ativos
+                <CardDescription className="text-slate-400">
+                  Envie mensagens em massa para todos os membros ativos
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5" />
-                    <div>
-                      <p className="text-yellow-200 font-medium">Atenção</p>
-                      <p className="text-yellow-200/70 text-sm">
-                        Esta mensagem será enviada para {members.filter(m => m.status === 'active').length} membros ativos.
-                        Certifique-se de que a mensagem está correta antes de enviar.
-                      </p>
-                    </div>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Mensagem</Label>
+                    <textarea
+                      className="w-full h-32 rounded-lg bg-slate-900 border border-slate-600 p-3 text-white resize-none"
+                      placeholder="Digite sua mensagem para envio em massa..."
+                      value={broadcastMessage}
+                      onChange={e => setBroadcastMessage(e.target.value)}
+                    />
                   </div>
-                </div>
-                
-                <div>
-                  <label className="text-sm text-slate-400 mb-2 block">Mensagem</label>
-                  <textarea
-                    className="w-full h-32 rounded-lg bg-slate-900 border border-slate-600 p-3 text-white resize-none"
-                    placeholder="Digite sua mensagem aqui..."
-                    value={broadcastMessage}
-                    onChange={e => setBroadcastMessage(e.target.value)}
-                  />
-                </div>
-                
-                <Button
-                  onClick={sendBroadcast}
-                  disabled={loading || !broadcastMessage.trim()}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700"
-                >
-                  {loading ? (
-                    <>
+                  
+                  <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+                    <span className="text-slate-400">Membros ativos que receberão:</span>
+                    <Badge variant="outline" className="border-emerald-500 text-emerald-400">
+                      {members.filter(m => m.status === 'active').length} contatos
+                    </Badge>
+                  </div>
+                  
+                  <Button 
+                    onClick={sendBroadcast}
+                    disabled={loading || !broadcastMessage.trim()}
+                    className="w-full bg-orange-600 hover:bg-orange-700"
+                  >
+                    {loading ? (
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Enviando...
-                    </>
-                  ) : (
-                    <>
+                    ) : (
                       <Send className="w-4 h-4 mr-2" />
-                      Enviar Broadcast
-                    </>
-                  )}
-                </Button>
+                    )}
+                    Enviar Broadcast
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Config Tab */}
-          <TabsContent value="config" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Bot className="w-5 h-5 text-emerald-500" />
-                    Configurações do Bot
-                  </CardTitle>
-                  <CardDescription>Personalize o comportamento do bot</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-sm text-slate-400 mb-2 block">Nome do Bot</label>
-                    <Input
-                      value={botName}
-                      onChange={e => setBotName(e.target.value)}
-                      className="bg-slate-900 border-slate-600"
-                    />
+          <TabsContent value="config" className="space-y-4">
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-slate-400" />
+                  Configurações do Bot
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Configure o comportamento e personalidade do seu bot
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Bot Identity */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2 text-white">
+                    <Bot className="w-4 h-4 text-emerald-500" />
+                    Identidade do Bot
+                  </h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-slate-300">Nome do Bot</Label>
+                      <Input
+                        value={botName}
+                        onChange={e => setBotName(e.target.value)}
+                        className="bg-slate-900 border-slate-600 mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-slate-300">Nicho</Label>
+                      <Select value={selectedNiche} onValueChange={setSelectedNiche}>
+                        <SelectTrigger className="bg-slate-900 border-slate-600 mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-600">
+                          {niches.map(n => (
+                            <SelectItem key={n.id} value={n.id}>
+                              {n.icon} {n.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
+                  
                   <div>
-                    <label className="text-sm text-slate-400 mb-2 block">Mensagem de Boas-vindas</label>
+                    <Label className="text-slate-300">Mensagem de Boas-vindas</Label>
                     <textarea
-                      className="w-full h-20 rounded-lg bg-slate-900 border border-slate-600 p-3 text-white resize-none"
+                      className="w-full h-20 rounded-lg bg-slate-900 border border-slate-600 p-3 text-white resize-none mt-1"
                       value={welcomeMessage}
                       onChange={e => setWelcomeMessage(e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className="text-sm text-slate-400 mb-2 block">Nicho</label>
-                    <Select value={selectedNiche} onValueChange={setSelectedNiche}>
-                      <SelectTrigger className="bg-slate-900 border-slate-600">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-600">
-                        {niches.map(n => (
-                          <SelectItem key={n.id} value={n.id}>
-                            {n.icon} {n.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button 
-                    onClick={handleSaveConfig}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Salvar Configurações
-                  </Button>
-                </CardContent>
-              </Card>
+                </div>
 
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-blue-500" />
-                    Credenciais Necessárias
-                  </CardTitle>
-                  <CardDescription>Configure suas credenciais no arquivo .env</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900/50">
-                      <div>
-                        <p className="text-white font-medium">WhatsApp Token</p>
-                        <p className="text-xs text-slate-500">WHATSAPP_TOKEN</p>
-                      </div>
-                      <Badge variant="outline" className="border-yellow-500 text-yellow-500">
-                        Configurar
-                      </Badge>
+                {/* Business Hours */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2 text-white">
+                    <Clock4 className="w-4 h-4 text-blue-500" />
+                    Horário de Atendimento
+                  </h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-slate-300">Início</Label>
+                      <Input
+                        type="time"
+                        value={businessHours.start}
+                        onChange={e => setBusinessHours(prev => ({ ...prev, start: e.target.value }))}
+                        className="bg-slate-900 border-slate-600 mt-1"
+                      />
                     </div>
-                    
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900/50">
-                      <div>
-                        <p className="text-white font-medium">Phone Number ID</p>
-                        <p className="text-xs text-slate-500">WHATSAPP_PHONE_ID</p>
-                      </div>
-                      <Badge variant="outline" className="border-yellow-500 text-yellow-500">
-                        Configurar
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900/50">
-                      <div>
-                        <p className="text-white font-medium">Banco de Dados</p>
-                        <p className="text-xs text-slate-500">DATABASE_URL</p>
-                      </div>
-                      <Badge variant="outline" className="border-green-500 text-green-500">
-                        Conectado
-                      </Badge>
+                    <div>
+                      <Label className="text-slate-300">Término</Label>
+                      <Input
+                        type="time"
+                        value={businessHours.end}
+                        onChange={e => setBusinessHours(prev => ({ ...prev, end: e.target.value }))}
+                        className="bg-slate-900 border-slate-600 mt-1"
+                      />
                     </div>
                   </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-slate-300">Resposta Automática</Label>
+                      <p className="text-xs text-slate-500">Bot responde automaticamente</p>
+                    </div>
+                    <Switch checked={autoReply} onCheckedChange={setAutoReply} />
+                  </div>
+                </div>
+
+                {/* Tone */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2 text-white">
+                    <MessageCircle className="w-4 h-4 text-purple-500" />
+                    Tom de Comunicação
+                  </h3>
                   
-                  <Button 
-                    variant="outline" 
-                    className="w-full border-slate-600"
-                    onClick={() => setShowSettings(true)}
-                  >
-                    <Settings className="w-4 h-4 mr-2" />
-                    Configurações Avançadas
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'professional', label: 'Profissional', desc: 'Formal' },
+                      { id: 'friendly', label: 'Amigável', desc: 'Casual' },
+                      { id: 'technical', label: 'Técnico', desc: 'Direto' }
+                    ].map(tone => (
+                      <button
+                        key={tone.id}
+                        onClick={() => setBotTone(tone.id)}
+                        className={`p-3 rounded-lg border text-left transition-all ${
+                          botTone === tone.id 
+                            ? 'border-emerald-500 bg-emerald-500/10' 
+                            : 'border-slate-600 hover:border-slate-500'
+                        }`}
+                      >
+                        <p className="font-medium text-white">{tone.label}</p>
+                        <p className="text-xs text-slate-400">{tone.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleSaveConfig}
+                  disabled={loading}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {loading ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  Salvar Configurações
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
