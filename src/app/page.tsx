@@ -453,7 +453,7 @@ export default function Dashboard() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-slate-300">Nome do Bot</Label>
+                  <Label className="text-white font-medium">Nome do Bot</Label>
                   <Input
                     value={botName}
                     onChange={e => setBotName(e.target.value)}
@@ -462,14 +462,14 @@ export default function Dashboard() {
                   />
                 </div>
                 <div>
-                  <Label className="text-slate-300">Nicho de Atuação</Label>
+                  <Label className="text-white font-medium">Nicho de Atuação</Label>
                   <Select value={selectedNiche} onValueChange={setSelectedNiche}>
-                    <SelectTrigger className="bg-slate-900 border-slate-600 mt-1">
+                    <SelectTrigger className="bg-slate-100 text-slate-900 border-slate-300 mt-1">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
+                    <SelectContent className="bg-white border-slate-300">
                       {niches.map(n => (
-                        <SelectItem key={n.id} value={n.id}>
+                        <SelectItem key={n.id} value={n.id} className="text-slate-900 hover:bg-slate-100 focus:bg-slate-100">
                           {n.icon} {n.name}
                         </SelectItem>
                       ))}
@@ -479,7 +479,7 @@ export default function Dashboard() {
               </div>
               
               <div>
-                <Label className="text-slate-300">Mensagem de Boas-vindas</Label>
+                <Label className="text-white font-medium">Mensagem de Boas-vindas</Label>
                 <textarea
                   className="w-full h-20 rounded-lg bg-slate-900 border border-slate-600 p-3 text-white resize-none mt-1"
                   value={welcomeMessage}
@@ -498,7 +498,7 @@ export default function Dashboard() {
               
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-slate-300">Resposta Automática</Label>
+                  <Label className="text-white font-medium">Resposta Automática</Label>
                   <p className="text-xs text-slate-500">Bot responde automaticamente a todas as mensagens</p>
                 </div>
                 <Switch checked={autoReply} onCheckedChange={setAutoReply} />
@@ -506,7 +506,7 @@ export default function Dashboard() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-slate-300">Início</Label>
+                  <Label className="text-white font-medium">Início</Label>
                   <Input
                     type="time"
                     value={businessHours.start}
@@ -515,7 +515,7 @@ export default function Dashboard() {
                   />
                 </div>
                 <div>
-                  <Label className="text-slate-300">Término</Label>
+                  <Label className="text-white font-medium">Término</Label>
                   <Input
                     type="time"
                     value={businessHours.end}
@@ -527,14 +527,14 @@ export default function Dashboard() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-slate-300">Atender fora do horário</Label>
+                  <Label className="text-white font-medium">Atender fora do horário</Label>
                   <p className="text-xs text-slate-500">Responder quando estiver fechado</p>
                 </div>
                 <Switch checked={enableOutsideHours} onCheckedChange={setEnableOutsideHours} />
               </div>
               
               <div>
-                <Label className="text-slate-300">Mensagem fora do horário</Label>
+                <Label className="text-white font-medium">Mensagem fora do horário</Label>
                 <textarea
                   className="w-full h-16 rounded-lg bg-slate-900 border border-slate-600 p-3 text-white resize-none mt-1"
                   value={outsideHoursMessage}
@@ -562,12 +562,12 @@ export default function Dashboard() {
                     onClick={() => setBotTone(tone.id)}
                     className={`p-3 rounded-lg border text-left transition-all ${
                       botTone === tone.id 
-                        ? 'border-emerald-500 bg-emerald-500/10' 
-                        : 'border-slate-600 hover:border-slate-500'
+                        ? 'border-emerald-500 bg-emerald-500/20 text-white' 
+                        : 'border-slate-500 bg-slate-700 hover:border-slate-400 text-white'
                     }`}
                   >
                     <p className="font-medium text-white">{tone.label}</p>
-                    <p className="text-xs text-slate-400">{tone.desc}</p>
+                    <p className="text-xs text-slate-300">{tone.desc}</p>
                   </button>
                 ))}
               </div>
@@ -730,7 +730,7 @@ export default function Dashboard() {
           
           <div className="space-y-4 py-4">
             <div>
-              <Label className="text-slate-300">Nome *</Label>
+              <Label className="text-white font-medium">Nome *</Label>
               <Input
                 value={newMember.name}
                 onChange={e => setNewMember(prev => ({ ...prev, name: e.target.value }))}
@@ -740,7 +740,7 @@ export default function Dashboard() {
             </div>
             
             <div>
-              <Label className="text-slate-300">Telefone *</Label>
+              <Label className="text-white font-medium">Telefone *</Label>
               <Input
                 value={newMember.phone}
                 onChange={e => setNewMember(prev => ({ ...prev, phone: e.target.value }))}
@@ -751,7 +751,7 @@ export default function Dashboard() {
             </div>
             
             <div>
-              <Label className="text-slate-300">Email</Label>
+              <Label className="text-white font-medium">Email</Label>
               <Input
                 type="email"
                 value={newMember.email}
@@ -763,7 +763,7 @@ export default function Dashboard() {
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-slate-300">Categoria</Label>
+                <Label className="text-white font-medium">Categoria</Label>
                 <Input
                   value={newMember.category}
                   onChange={e => setNewMember(prev => ({ ...prev, category: e.target.value }))}
@@ -772,18 +772,18 @@ export default function Dashboard() {
                 />
               </div>
               <div>
-                <Label className="text-slate-300">Status</Label>
+                <Label className="text-white font-medium">Status</Label>
                 <Select 
                   value={newMember.status} 
                   onValueChange={v => setNewMember(prev => ({ ...prev, status: v }))}
                 >
-                  <SelectTrigger className="bg-slate-900 border-slate-600 mt-1">
+                  <SelectTrigger className="bg-slate-100 text-slate-900 border-slate-300 mt-1">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-600">
-                    <SelectItem value="active">Ativo</SelectItem>
-                    <SelectItem value="inactive">Inativo</SelectItem>
-                    <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectContent className="bg-white border-slate-300">
+                    <SelectItem value="active" className="text-slate-900 hover:bg-slate-100 focus:bg-slate-100">Ativo</SelectItem>
+                    <SelectItem value="inactive" className="text-slate-900 hover:bg-slate-100 focus:bg-slate-100">Inativo</SelectItem>
+                    <SelectItem value="pending" className="text-slate-900 hover:bg-slate-100 focus:bg-slate-100">Pendente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -976,14 +976,14 @@ export default function Dashboard() {
               <CardContent>
                 {/* Niche Selector */}
                 <div className="mb-4">
-                  <Label className="text-slate-300 mb-2 block">Nicho de Atuação</Label>
+                  <Label className="text-white font-medium mb-2 block">Nicho de Atuação</Label>
                   <Select value={selectedNiche} onValueChange={setSelectedNiche}>
-                    <SelectTrigger className="bg-slate-900 border-slate-600">
+                    <SelectTrigger className="bg-slate-100 text-slate-900 border-slate-300">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
+                    <SelectContent className="bg-white border-slate-300">
                       {niches.map(n => (
-                        <SelectItem key={n.id} value={n.id}>
+                        <SelectItem key={n.id} value={n.id} className="text-slate-900 hover:bg-slate-100 focus:bg-slate-100">
                           {n.icon} {n.name}
                         </SelectItem>
                       ))}
@@ -1221,7 +1221,7 @@ export default function Dashboard() {
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-slate-300 mb-2 block">Mensagem</Label>
+                    <Label className="text-white font-medium mb-2 block">Mensagem</Label>
                     <textarea
                       className="w-full h-32 rounded-lg bg-slate-900 border border-slate-600 p-3 text-white resize-none"
                       placeholder="Digite sua mensagem para envio em massa..."
@@ -1276,7 +1276,7 @@ export default function Dashboard() {
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-slate-300">Nome do Bot</Label>
+                      <Label className="text-white font-medium">Nome do Bot</Label>
                       <Input
                         value={botName}
                         onChange={e => setBotName(e.target.value)}
@@ -1284,14 +1284,14 @@ export default function Dashboard() {
                       />
                     </div>
                     <div>
-                      <Label className="text-slate-300">Nicho</Label>
+                      <Label className="text-white font-medium">Nicho</Label>
                       <Select value={selectedNiche} onValueChange={setSelectedNiche}>
-                        <SelectTrigger className="bg-slate-900 border-slate-600 mt-1">
+                        <SelectTrigger className="bg-slate-100 text-slate-900 border-slate-300 mt-1">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-600">
+                        <SelectContent className="bg-white border-slate-300">
                           {niches.map(n => (
-                            <SelectItem key={n.id} value={n.id}>
+                            <SelectItem key={n.id} value={n.id} className="text-slate-900 hover:bg-slate-100 focus:bg-slate-100">
                               {n.icon} {n.name}
                             </SelectItem>
                           ))}
@@ -1301,7 +1301,7 @@ export default function Dashboard() {
                   </div>
                   
                   <div>
-                    <Label className="text-slate-300">Mensagem de Boas-vindas</Label>
+                    <Label className="text-white font-medium">Mensagem de Boas-vindas</Label>
                     <textarea
                       className="w-full h-20 rounded-lg bg-slate-900 border border-slate-600 p-3 text-white resize-none mt-1"
                       value={welcomeMessage}
@@ -1319,7 +1319,7 @@ export default function Dashboard() {
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-slate-300">Início</Label>
+                      <Label className="text-white font-medium">Início</Label>
                       <Input
                         type="time"
                         value={businessHours.start}
@@ -1328,7 +1328,7 @@ export default function Dashboard() {
                       />
                     </div>
                     <div>
-                      <Label className="text-slate-300">Término</Label>
+                      <Label className="text-white font-medium">Término</Label>
                       <Input
                         type="time"
                         value={businessHours.end}
@@ -1340,7 +1340,7 @@ export default function Dashboard() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label className="text-slate-300">Resposta Automática</Label>
+                      <Label className="text-white font-medium">Resposta Automática</Label>
                       <p className="text-xs text-slate-500">Bot responde automaticamente</p>
                     </div>
                     <Switch checked={autoReply} onCheckedChange={setAutoReply} />
@@ -1365,12 +1365,12 @@ export default function Dashboard() {
                         onClick={() => setBotTone(tone.id)}
                         className={`p-3 rounded-lg border text-left transition-all ${
                           botTone === tone.id 
-                            ? 'border-emerald-500 bg-emerald-500/10' 
-                            : 'border-slate-600 hover:border-slate-500'
+                            ? 'border-emerald-500 bg-emerald-500/20 text-white' 
+                            : 'border-slate-500 bg-slate-700 hover:border-slate-400 text-white'
                         }`}
                       >
                         <p className="font-medium text-white">{tone.label}</p>
-                        <p className="text-xs text-slate-400">{tone.desc}</p>
+                        <p className="text-xs text-slate-300">{tone.desc}</p>
                       </button>
                     ))}
                   </div>
