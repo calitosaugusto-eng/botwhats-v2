@@ -1,0 +1,403 @@
+// ===========================================
+// AUTOMATION BOT - PRISMA SCHEMA
+// ===========================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+// ===========================================
+// CLIENTES (Organizações que usam o bot)
+// ===========================================
+model Client {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  niche         String   // sindicato, oficina, clinica, etc.
+  phone         String?
+  email         String?
+  address       String?
+  logo          String?
+  isActive      Boolean  @default(true)
+  plan          String   @default("basic") // basic, pro, enterprise
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relacionamentos
+  members       Member[]
+  messages      Message[]
+  templates     Template[]
+  flows         Flow[]
+  settings      Setting[]
+  conversations Conversation[]
+  knowledge     ClientKnowledge[]
+  professionals Professional[]
+  services      Service[]
+  appointments  Appointment[]
+}
+
+// ===========================================
+// MEMBROS (Pessoas cadastradas no sistema)
+// ===========================================
+model Member {
+  id           String   @id @default(cuid())
+  clientId     String
+  name         String
+  phone        String
+  email        String?
+  cpf          String?
+  membershipId String?  // Número de matrícula
+  category     String?  // Categoria do associado
+  status       String   @default("active") // active, inactive, pending
+  joinDate     DateTime?
+  notes        String?
+  metadata     String?  // JSON para dados extras
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relacionamentos
+  client       Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  appointments Appointment[]  // Histórico de agendamentos do cliente
+  
+  @@unique([clientId, phone])
+}
+
+// ===========================================
+// CONVERSAS (Histórico de conversas)
+// ===========================================
+model Conversation {
+  id             String    @id @default(cuid())
+  clientId       String
+  memberId       String?
+  phone          String
+  status         String    @default("active") // active, resolved, pending_human
+  humanTakeover  Boolean   @default(false)    // true quando humano assume a conversa
+  
+  // Estado da conversa
+  awaitingName   Boolean   @default(true)     // Aguardando nome do contato
+  context        String?   // JSON: {"step": "scheduling", "data": {...}}
+  
+  summary        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  // Relacionamentos
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  member         Member?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  messages       Message[]
+}
+
+// ===========================================
+// MENSAGENS (Mensagens individuais)
+// ===========================================
+model Message {
+  id             String   @id @default(cuid())
+  clientId       String
+  conversationId String
+  direction      String   // inbound, outbound
+  type           String   @default("text") // text, image, document, audio
+  content        String
+  mediaUrl       String?
+  status         String   @default("sent") // sent, delivered, read, failed
+  isFromBot      Boolean  @default(false)
+  metadata       String?  // JSON para dados extras
+  createdAt      DateTime @default(now())
+  
+  // Relacionamentos
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+// ===========================================
+// TEMPLATES (Mensagens predefinidas)
+// ===========================================
+model Template {
+  id          String   @id @default(cuid())
+  clientId    String
+  name        String
+  category    String   // welcome, faq, reminder, promotion, etc.
+  content     String
+  variables   String?  // JSON com variáveis
+  isActive    Boolean  @default(true)
+  useCount    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  @@unique([clientId, name])
+}
+
+// ===========================================
+// FLOWS (Fluxos de conversa automatizados)
+// ===========================================
+model Flow {
+  id          String   @id @default(cuid())
+  clientId    String
+  name        String
+  trigger     String   // keyword, event, etc.
+  description String?
+  steps       String   // JSON com os passos do fluxo
+  isActive    Boolean  @default(true)
+  useCount    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// ===========================================
+// SETTINGS (Configurações por cliente)
+// ===========================================
+model Setting {
+  id          String   @id @default(cuid())
+  clientId    String
+  key         String
+  value       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  @@unique([clientId, key])
+}
+
+// ===========================================
+// CLIENT KNOWLEDGE (Conhecimento/Treinamento do Bot)
+// ===========================================
+// Cada cliente treina seu bot com informações específicas
+// Isso permite que o bot responda com contexto personalizado
+model ClientKnowledge {
+  id          String   @id @default(cuid())
+  clientId    String
+  category    String   // services, prices, professionals, faq, policies, hours, location
+  title       String   // Título da informação
+  content     String   // Conteúdo detalhado
+  keywords    String?  // Palavras-chave para busca (separadas por vírgula)
+  priority    Int      @default(0)  // Prioridade na resposta (maior = mais importante)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  @@index([clientId, category])
+  @@index([clientId, isActive])
+}
+
+// ===========================================
+// ANALYTICS (Métricas e estatísticas)
+// ===========================================
+model Analytics {
+  id          String   @id @default(cuid())
+  clientId    String
+  date        DateTime @default(now())
+  messagesIn  Int      @default(0)
+  messagesOut Int      @default(0)
+  newMembers  Int      @default(0)
+  resolved    Int      @default(0)
+  pendingHuman Int     @default(0)
+  
+  @@unique([clientId, date])
+}
+
+// ===========================================
+// AUDIT LOG (Registro de ações)
+// ===========================================
+model AuditLog {
+  id          String   @id @default(cuid())
+  clientId    String?
+  action      String
+  entity      String
+  entityId    String?
+  details     String?  // JSON
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+}
+
+// ===========================================
+// NICHE TEMPLATES (Templates pré-definidos por nicho)
+// ===========================================
+model NicheTemplate {
+  id          String   @id @default(cuid())
+  niche       String
+  name        String
+  category    String
+  content     String
+  variables   String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([niche, name])
+}
+
+// ===========================================
+// PROFESSIONALS (Profissionais de cada cliente)
+// ===========================================
+// Cada estabelecimento tem seus profissionais
+// Ex: Salão tem cabelereiras, Clínica tem médicos
+model Professional {
+  id           String   @id @default(cuid())
+  clientId     String
+  name         String
+  phone        String?
+  email        String?
+  services     String?  // JSON array: ["corte", "coloração"]
+  workingHours String?  // JSON: {"mon": {"start": "09:00", "end": "18:00"}, ...}
+  isActive     Boolean  @default(true)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relacionamentos
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  
+  @@index([clientId, isActive])
+}
+
+// ===========================================
+// SERVICES (Serviços oferecidos)
+// ===========================================
+// Serviços de cada estabelecimento
+// Ex: Salão: Corte, Coloração, Manicure...
+model Service {
+  id          String   @id @default(cuid())
+  clientId    String
+  name        String   // "Corte Feminino"
+  description String?
+  duration    Int      @default(60)  // Duração em minutos
+  price       Float    @default(0)
+  category    String?  // "Cabelo", "Unhas", "Barba"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  
+  @@index([clientId, isActive])
+}
+
+// ===========================================
+// APPOINTMENTS (Agendamentos)
+// ===========================================
+// Sistema completo de agendamentos com anti-sobreposição
+// Cada agendamento é vinculado ao cliente (estabelecimento)
+model Appointment {
+  id             String    @id @default(cuid())
+  clientId       String    // Estabelecimento (ISOLAMENTO)
+  memberId       String?   // Cliente que agendou
+  professionalId String?   // Profissional (opcional)
+  serviceId      String?   // Serviço agendado
+  
+  date           DateTime  // Data do agendamento
+  startTime      String    // "14:00"
+  endTime        String    // "15:00"
+  duration       Int       @default(60)  // Minutos
+  
+  status         String    @default("confirmed")  // confirmed, cancelled, completed, no_show
+  price          Float?    // Preço no momento do agendamento
+  notes          String?   // Observações
+  
+  // Controle de lembretes
+  reminderSent   Boolean   @default(false)
+  reminderAt     DateTime?
+  
+  // Cancelamento
+  cancelledAt    DateTime?
+  cancelledBy    String?   // "client", "professional", "system"
+  cancelReason   String?
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  // Relacionamentos
+  client       Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  member       Member?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  professional Professional? @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+  service      Service?     @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  
+  @@index([clientId, date])
+  @@index([clientId, status])
+  @@index([memberId])
+  @@index([professionalId])
+}
+
+// ===========================================
+// WEEKLY REPORTS (Relatórios Semanais)
+// ===========================================
+// Armazena relatórios gerados para cada cliente
+model WeeklyReport {
+  id              String   @id @default(cuid())
+  clientId        String
+  
+  weekStart       DateTime
+  weekEnd         DateTime
+  
+  // Estatísticas
+  totalAppointments     Int     @default(0)
+  completedAppointments Int     @default(0)
+  cancelledAppointments Int     @default(0)
+  noShowAppointments    Int     @default(0)
+  
+  totalRevenue    Float    @default(0)
+  lostRevenue     Float    @default(0)
+  
+  newClients      Int      @default(0)
+  returningClients Int     @default(0)
+  
+  // Comparação com semana anterior
+  growthPercent   Float?
+  
+  // Dados detalhados em JSON
+  topServices     String?  // JSON: [{"name": "Corte", "count": 15}]
+  topProfessionals String? // JSON: [{"name": "Ana", "count": 20}]
+  dailyBreakdown  String?  // JSON: {"mon": 5, "tue": 8, ...}
+  
+  // Envio
+  sentAt          DateTime?
+  sentTo          String?  // Email ou telefone do dono
+  
+  createdAt       DateTime @default(now())
+  
+  @@unique([clientId, weekStart])
+  @@index([clientId])
+}
+
+// ===========================================
+// DAILY REMINDERS (Lembretes Diários)
+// ===========================================
+// Controle de lembretes enviados para o dono
+model DailyReminder {
+  id              String   @id @default(cuid())
+  clientId        String
+  date            DateTime
+  
+  // Tipo: morning (resumo do dia), evening (resumo amanhã)
+  type            String   // "morning", "evening", "cancellation"
+  
+  // Conteúdo
+  appointmentCount Int     @default(0)
+  cancellations    Int     @default(0)
+  message          String?  // Mensagem enviada
+  
+  sentAt          DateTime?
+  
+  createdAt       DateTime @default(now())
+  
+  @@unique([clientId, date, type])
+}
