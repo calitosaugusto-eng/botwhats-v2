@@ -457,7 +457,7 @@ export default function Dashboard() {
                   <Input
                     value={botName}
                     onChange={e => setBotName(e.target.value)}
-                    className="bg-slate-900 border-slate-600 mt-1"
+                    className="bg-slate-100 text-slate-900 border-slate-300 mt-1"
                     placeholder="Ex: Assistente Virtual"
                   />
                 </div>
@@ -481,7 +481,7 @@ export default function Dashboard() {
               <div>
                 <Label className="text-white font-medium">Mensagem de Boas-vindas</Label>
                 <textarea
-                  className="w-full h-20 rounded-lg bg-slate-900 border border-slate-600 p-3 text-white resize-none mt-1"
+                  className="w-full h-20 rounded-lg bg-slate-100 border border-slate-300 p-3 text-slate-900 resize-none mt-1 placeholder:text-slate-500"
                   value={welcomeMessage}
                   onChange={e => setWelcomeMessage(e.target.value)}
                   placeholder="Primeira mensagem que o bot envia..."
@@ -511,7 +511,7 @@ export default function Dashboard() {
                     type="time"
                     value={businessHours.start}
                     onChange={e => setBusinessHours(prev => ({ ...prev, start: e.target.value }))}
-                    className="bg-slate-900 border-slate-600 mt-1"
+                    className="bg-slate-100 text-slate-900 border-slate-300 mt-1"
                   />
                 </div>
                 <div>
@@ -520,7 +520,7 @@ export default function Dashboard() {
                     type="time"
                     value={businessHours.end}
                     onChange={e => setBusinessHours(prev => ({ ...prev, end: e.target.value }))}
-                    className="bg-slate-900 border-slate-600 mt-1"
+                    className="bg-slate-100 text-slate-900 border-slate-300 mt-1"
                   />
                 </div>
               </div>
@@ -536,7 +536,7 @@ export default function Dashboard() {
               <div>
                 <Label className="text-white font-medium">Mensagem fora do horário</Label>
                 <textarea
-                  className="w-full h-16 rounded-lg bg-slate-900 border border-slate-600 p-3 text-white resize-none mt-1"
+                  className="w-full h-16 rounded-lg bg-slate-100 border border-slate-300 p-3 text-slate-900 resize-none mt-1 placeholder:text-slate-500"
                   value={outsideHoursMessage}
                   onChange={e => setOutsideHoursMessage(e.target.value)}
                   disabled={!enableOutsideHours}
@@ -693,7 +693,7 @@ export default function Dashboard() {
                 value={humanReply}
                 onChange={e => setHumanReply(e.target.value)}
                 onKeyPress={e => e.key === 'Enter' && sendHumanReply()}
-                className="bg-slate-900 border-slate-600 text-white"
+                className="bg-slate-100 text-slate-900 border-slate-300"
                 disabled={sendingReply}
               />
               <Button 
@@ -734,7 +734,7 @@ export default function Dashboard() {
               <Input
                 value={newMember.name}
                 onChange={e => setNewMember(prev => ({ ...prev, name: e.target.value }))}
-                className="bg-slate-900 border-slate-600 mt-1"
+                className="bg-slate-100 text-slate-900 border-slate-300 mt-1 placeholder:text-slate-500"
                 placeholder="Nome completo"
               />
             </div>
@@ -744,7 +744,7 @@ export default function Dashboard() {
               <Input
                 value={newMember.phone}
                 onChange={e => setNewMember(prev => ({ ...prev, phone: e.target.value }))}
-                className="bg-slate-900 border-slate-600 mt-1"
+                className="bg-slate-100 text-slate-900 border-slate-300 mt-1 placeholder:text-slate-500"
                 placeholder="5511999999999"
               />
               <p className="text-xs text-slate-500 mt-1">Formato: código país + DDD + número</p>
@@ -756,7 +756,7 @@ export default function Dashboard() {
                 type="email"
                 value={newMember.email}
                 onChange={e => setNewMember(prev => ({ ...prev, email: e.target.value }))}
-                className="bg-slate-900 border-slate-600 mt-1"
+                className="bg-slate-100 text-slate-900 border-slate-300 mt-1 placeholder:text-slate-500"
                 placeholder="email@exemplo.com"
               />
             </div>
@@ -767,7 +767,7 @@ export default function Dashboard() {
                 <Input
                   value={newMember.category}
                   onChange={e => setNewMember(prev => ({ ...prev, category: e.target.value }))}
-                  className="bg-slate-900 border-slate-600 mt-1"
+                  className="bg-slate-100 text-slate-900 border-slate-300 mt-1 placeholder:text-slate-500"
                   placeholder="Ex: Premium, Básico..."
                 />
               </div>
@@ -1035,7 +1035,7 @@ export default function Dashboard() {
                     value={inputMessage}
                     onChange={e => setInputMessage(e.target.value)}
                     onKeyPress={e => e.key === 'Enter' && sendTestMessage()}
-                    className="bg-slate-900 border-slate-600 text-white"
+                    className="bg-slate-100 text-slate-900 border-slate-300"
                     disabled={loading}
                   />
                   <Button 
@@ -1153,7 +1153,7 @@ export default function Dashboard() {
                     placeholder="Buscar membros..."
                     value={searchMember}
                     onChange={e => setSearchMember(e.target.value)}
-                    className="bg-slate-900 border-slate-600 pl-10"
+                    className="bg-slate-100 text-slate-900 border-slate-300 pl-10 placeholder:text-slate-500"
                   />
                 </div>
 
@@ -1223,7 +1223,7 @@ export default function Dashboard() {
                   <div>
                     <Label className="text-white font-medium mb-2 block">Mensagem</Label>
                     <textarea
-                      className="w-full h-32 rounded-lg bg-slate-900 border border-slate-600 p-3 text-white resize-none"
+                      className="w-full h-32 rounded-lg bg-slate-100 border border-slate-300 p-3 text-slate-900 resize-none placeholder:text-slate-500"
                       placeholder="Digite sua mensagem para envio em massa..."
                       value={broadcastMessage}
                       onChange={e => setBroadcastMessage(e.target.value)}
@@ -1280,7 +1280,7 @@ export default function Dashboard() {
                       <Input
                         value={botName}
                         onChange={e => setBotName(e.target.value)}
-                        className="bg-slate-900 border-slate-600 mt-1"
+                        className="bg-slate-100 text-slate-900 border-slate-300 mt-1 placeholder:text-slate-500"
                       />
                     </div>
                     <div>
@@ -1303,7 +1303,7 @@ export default function Dashboard() {
                   <div>
                     <Label className="text-white font-medium">Mensagem de Boas-vindas</Label>
                     <textarea
-                      className="w-full h-20 rounded-lg bg-slate-900 border border-slate-600 p-3 text-white resize-none mt-1"
+                      className="w-full h-20 rounded-lg bg-slate-100 border border-slate-300 p-3 text-slate-900 resize-none mt-1 placeholder:text-slate-500"
                       value={welcomeMessage}
                       onChange={e => setWelcomeMessage(e.target.value)}
                     />
@@ -1324,7 +1324,7 @@ export default function Dashboard() {
                         type="time"
                         value={businessHours.start}
                         onChange={e => setBusinessHours(prev => ({ ...prev, start: e.target.value }))}
-                        className="bg-slate-900 border-slate-600 mt-1"
+                        className="bg-slate-100 text-slate-900 border-slate-300 mt-1"
                       />
                     </div>
                     <div>
@@ -1333,7 +1333,7 @@ export default function Dashboard() {
                         type="time"
                         value={businessHours.end}
                         onChange={e => setBusinessHours(prev => ({ ...prev, end: e.target.value }))}
-                        className="bg-slate-900 border-slate-600 mt-1"
+                        className="bg-slate-100 text-slate-900 border-slate-300 mt-1"
                       />
                     </div>
                   </div>
